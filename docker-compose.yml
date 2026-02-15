@@ -1,0 +1,51 @@
+name: poll-system-project
+services:
+
+  mysql-user:
+    image: mysql:8
+    container_name: mysql-user
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: user_service
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_user_data:/var/lib/mysql
+
+  mysql-poll:
+    image: mysql:8
+    container_name: mysql-poll
+    restart: always
+    environment:
+      MYSQL_ROOT_PASSWORD: password
+      MYSQL_DATABASE: poll_service
+    ports:
+      - "3308:3306"
+    volumes:
+      - mysql_poll_data:/var/lib/mysql
+
+  user-service:
+    build: .//poll-system-user-service
+    container_name: user-service
+    depends_on:
+      - mysql-user
+    environment:
+      DATABASE_URL: mysql+pymysql://root:password@mysql-user:3306/user_service
+    ports:
+      - "8001:8000"
+
+  poll-service:
+    build: .//poll-system-poll-service
+    container_name: poll-service
+    depends_on:
+      - mysql-poll
+      - user-service
+    environment:
+      DATABASE_URL: mysql+pymysql://root:password@mysql-poll:3306/poll_service
+    ports:
+      - "8002:8000"
+
+volumes:
+  mysql_user_data:
+  mysql_poll_data:
