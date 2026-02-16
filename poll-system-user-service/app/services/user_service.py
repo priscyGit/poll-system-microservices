@@ -1,10 +1,12 @@
 from sqlalchemy.orm import Session
 from app.repositories.user_repository import UserRepository
-from app.schemas.user import UserCreate
-from app.schemas.user import UserUpdate
+from app.schemas.user import UserCreate, UserUpdate
 
 
 class UserService:
+
+    def __init__(self):
+        self.user_repository = UserRepository()
 
     def create_user(self, db: Session, user: UserCreate):
         existing_user = self.user_repository.get_user_by_email(db, user.email)
@@ -13,22 +15,17 @@ class UserService:
 
         return self.user_repository.create_user(db, user)
 
-
     def get_user(self, db: Session, user_id: int):
         return self.user_repository.get_user_by_id(db, user_id)
-
 
     def register_user(self, db: Session, user_id: int):
         return self.user_repository.register_user(db, user_id)
 
-
     def delete_user(self, db: Session, user_id: int):
         return self.user_repository.delete_user(db, user_id)
 
-
     def get_all_users(self, db: Session):
         return self.user_repository.get_all_users(db)
-
 
     def update_user(self, db: Session, user_id: int, user: UserUpdate):
         existing_user = self.user_repository.get_user_by_id(db, user_id)
