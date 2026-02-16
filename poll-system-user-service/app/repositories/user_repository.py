@@ -19,39 +19,41 @@ class UserRepository:
         db.refresh(new_user)
         return new_user
 
-def get_user_by_id(self, db: Session, user_id: int):
-    return db.query(User).filter(User.id == user_id).first()
+    def get_user_by_id(self, db: Session, user_id: int):
+        return db.query(User).filter(User.id == user_id).first()
     
-def register_user(self, db: Session, user_id: int):
-    user = self.get_user_by_id(db, user_id)
-    if not user:
-        return None
-    user.is_registered = True
-    db.commit()
-    db.refresh(user)
-    return user
+    def register_user(self, db: Session, user_id: int):
+        user = self.get_user_by_id(db, user_id)
+        if not user:
+            return None
 
-def delete_user(self, db: Session, user_id: int):
-    user = self.get_user_by_id(db, user_id)
-    if not user:
-        return None
-    db.delete(user)
-    db.commit()
-    return user
-def get_all_users(self, db: Session):
-    return db.query(User).all()
+        user.is_registered = True
+        db.commit()
+        db.refresh(user)
+        return user
 
-def get_user_by_email(self, db: Session, email: str):
-    return db.query(User).filter(User.email == email).first()
+    def delete_user(self, db: Session, user_id: int):
+        user = self.get_user_by_id(db, user_id)
+        if not user:
+            return None
+        db.delete(user)
+        db.commit()
+        return user
 
-def update_user(self, db: Session, user_id: int, user_data: dict):
-    user = self.get_user_by_id(db, user_id)
-    if not user:
-        return None
+    def get_all_users(self, db: Session):
+        return db.query(User).all()
 
-    for key, value in user_data.items():
-        setattr(user, key, value)
+    def get_user_by_email(self, db: Session, email: str):
+        return db.query(User).filter(User.email == email).first()
 
-    db.commit()
-    db.refresh(user)
-    return user
+    def update_user(self, db: Session, user_id: int, user_data: dict):
+        user = self.get_user_by_id(db, user_id)
+        if not user:
+            return None
+
+        for key, value in user_data.items():
+            setattr(user, key, value)
+
+        db.commit()
+        db.refresh(user)
+        return user

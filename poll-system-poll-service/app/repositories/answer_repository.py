@@ -32,6 +32,7 @@ class AnswerRepository:
 
     def get_answers_by_user(self, db: Session, user_id: int):
         return db.query(Answer).filter(Answer.user_id == user_id).all()
+    
     def count_answers_by_option(self, db: Session, poll_id: int):
         answers = self.get_answers_for_poll(db, poll_id)
 
