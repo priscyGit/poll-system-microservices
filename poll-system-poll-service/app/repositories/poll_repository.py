@@ -23,3 +23,7 @@ class PollRepository:
 
     def get_all_polls(self, db: Session):
         return db.query(Poll).all()
+
+    def delete_poll(self, db: Session, poll_id: int):
+        db.query(Poll).filter(Poll.id == poll_id).delete()
+        db.commit()

@@ -1,7 +1,10 @@
+import httpx
 from sqlalchemy.orm import Session
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from app.repositories.answer_repository import AnswerRepository
 from app.repositories.poll_repository import PollRepository
+
+USER_SERVICE_URL = "http://user-service:8000"
 
 
 class AnswerService:
@@ -10,66 +13,66 @@ class AnswerService:
         self.answer_repository = AnswerRepository()
         self.poll_repository = PollRepository()
 
-    # ---------- CREATE ANSWER ----------
-    def create_answer(
-        self,
-        db: Session,
-        user_id: int,
-        poll_id: int,
-        selected_option: int
+    async def verify_user(self, user_id: int):
+        async with httpx.AsyncClient() as client:
+            response = await client.get(
+                f"{USER_SERVICE_URL}/users/{user_id}"
+            )
+
+        if response.status_code == 404:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="User not found"
+            )
+
+        user_data = response.json()
+
+        if not user_data.get("is_registered"):
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail="User is not registered"
+            )
+        
+    async def answer_poll(
+            self,
+            db: Session,
+            poll_id: int,
+            user_id: int,
+            selected_option: int
     ):
+        poll = self.poll_repository.get_poll_by_id(db, poll_id)
+        if not poll:
+            raise HTTPException(status_code=404, detail="Poll not found")
+        await self.verify_user(user_id)
+
+        existing_answer = self.answer_repository.get_user_answer_for_poll(
+            db, user_id, poll_id
+        )
+
+        if existing_answer:
+            raise HTTPException(
+                status_code=status.HTTP_409_CONFLICT,
+                detail="User has already answered this poll"
+            )
+
         return self.answer_repository.create_answer(
             db, user_id, poll_id, selected_option
         )
 
-    # ---------- GET USER ANSWER FOR POLL ----------
-    def get_user_answer_for_poll(
-        self,
-        db: Session,
-        user_id: int,
-        poll_id: int
-    ):
-        return self.answer_repository.get_user_answer_for_poll(
-            db, user_id, poll_id
-        )
-
-    # ---------- ANSWER POLL (POST) ----------
-    def answer_poll(
-        self,
-        db: Session,
-        poll_id: int,
-        user_id: int,
-        selected_option: int
-    ):
-        existing_answer = self.get_user_answer_for_poll(
-            db, user_id, poll_id
-        )
-
-        # if user already answered → update
-        if existing_answer:
-            return self.answer_repository.update_answer(
-                db, existing_answer, selected_option
-            )
-
-        return self.create_answer(
-            db, user_id, poll_id, selected_option
-        )
-
-    # ---------- UPDATE ANSWER (PUT) ----------
     def update_poll_answer(
-        self,
-        db: Session,
-        poll_id: int,
-        user_id: int,
-        selected_option: int
+            self,
+            db: Session,
+            poll_id: int,
+            user_id: int,
+            selected_option: int
     ):
-        existing_answer = self.get_user_answer_for_poll(
+        existing_answer = self.answer_repository.get_user_answer_for_poll(
             db, user_id, poll_id
         )
 
         if not existing_answer:
             raise HTTPException(
-                status_code=404,
+                status_code=status.HTTP_404_NOT_FOUND,
                 detail="Answer not found"
             )
 
@@ -77,13 +80,14 @@ class AnswerService:
             db, existing_answer, selected_option
         )
 
-    # ---------- POLL STATISTICS ----------
     def get_poll_statistics(self, db: Session, poll_id: int):
-
         poll = self.poll_repository.get_poll_by_id(db, poll_id)
 
         if not poll:
-            raise HTTPException(status_code=404, detail="Poll not found")
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Poll not found"
+            )
 
         option_counts = self.answer_repository.count_answers_by_option(
             db, poll_id
@@ -102,28 +106,7 @@ class AnswerService:
             "option_four": option_counts[4],
         }
 
-    # ---------- USER ANSWERS ----------
-    def get_user_answers(self, db: Session, user_id: int):
-
-        answers = self.answer_repository.get_answers_by_user(
-            db, user_id
-        )
-
-        return {
-            "user_id": user_id,
-            "total_answered": len(answers),
-            "answers": [
-                {
-                    "poll_id": answer.poll_id,
-                    "selected_option": answer.selected_option,
-                }
-                for answer in answers
-            ],
-        }
-
-    # ---------- ALL POLLS WITH STATS ----------
     def get_all_polls_with_stats(self, db: Session):
-
         polls = self.poll_repository.get_all_polls(db)
 
         result = []
@@ -149,3 +132,25 @@ class AnswerService:
             })
 
         return result
+
+    def get_user_answers(self, db: Session, user_id: int):
+        answers = self.answer_repository.get_answers_by_user(db, user_id)
+
+        return [
+            {
+                "id": answer.id,
+                "poll_id": answer.poll_id,
+                "selected_option": answer.selected_option
+            }
+            for answer in answers
+        ]
+
+    def delete_by_user(self, db: Session, user_id: int):
+        self.answer_repository.delete_by_user(db, user_id)
+        return {"message" : "Answer deleted"}
+
+
+
+
+
+

@@ -1,9 +1,11 @@
 from sqlalchemy.orm import Session
 from fastapi import HTTPException, status
+import httpx
 
 from app.repositories.user_repository import UserRepository
 from app.schemas.user import UserCreate, UserUpdate
 
+POLL_SERVICE_URL = "http://poll-service:8000"
 
 class UserService:
 
@@ -43,13 +45,21 @@ class UserService:
 
         return user
 
-    def delete_user(self, db: Session, user_id: int):
+    POLL_SERVICE_URL = "http://poll-service:8002"  
+
+    async def delete_user(self, db: Session, user_id: int):
         user = self.user_repository.delete_user(db, user_id)
 
         if not user:
             raise HTTPException(
                 status_code=status.HTTP_404_NOT_FOUND,
                 detail="User not found"
+            )
+
+        # 🔥 Notify Poll Service to delete answers
+        async with httpx.AsyncClient() as client:
+            await client.delete(
+                f"{POLL_SERVICE_URL}/answers/user/{user_id}"
             )
 
         return user

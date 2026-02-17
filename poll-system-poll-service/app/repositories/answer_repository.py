@@ -1,5 +1,7 @@
 from sqlalchemy.orm import Session
 from app.models.answer import Answer
+from sqlalchemy import func
+
 
 
 class AnswerRepository:
@@ -32,14 +34,23 @@ class AnswerRepository:
 
     def get_answers_by_user(self, db: Session, user_id: int):
         return db.query(Answer).filter(Answer.user_id == user_id).all()
-    
-    def count_answers_by_option(self, db: Session, poll_id: int):
-        answers = self.get_answers_for_poll(db, poll_id)
 
+    def count_answers_by_option(self, db: Session, poll_id: int):
+        results = db.query(
+            Answer.selected_option,
+            func.count(Answer.id)
+        ).filter(
+            Answer.poll_id == poll_id
+        ).group_by(
+            Answer.selected_option
+        ).all()
+
+        # initialize all options with 0
         stats = {1: 0, 2: 0, 3: 0, 4: 0}
 
-        for answer in answers:
-            stats[answer.selected_option] += 1
+        # fill with real counts
+        for option, count in results:
+            stats[option] = count
 
         return stats
 
@@ -48,3 +59,9 @@ class AnswerRepository:
 
     def count_total_answers_by_user(self, db: Session, user_id: int):
         return len(self.get_answers_by_user(db, user_id))
+
+    def delete_by_user(self, db: Session, user_id: int):
+        db.query(Answer).filter(
+            Answer.user_id == user_id
+        ).delete()
+        db.commit()

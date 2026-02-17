@@ -59,10 +59,13 @@ def update_user(user_id: int, user: UserUpdate, db: Session = Depends(get_db)):
         raise HTTPException(status_code=400, detail=str(e))
 
 
-@router.delete(
-    "/{user_id}",
-    status_code=status.HTTP_204_NO_CONTENT
-)
+@router.delete("/{user_id}")
+async def delete_user(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    return await user_service.delete_user(db, user_id)
+
 def delete_user(user_id: int, db: Session = Depends(get_db)):
     user = user_service.delete_user(db, user_id)
     if not user:

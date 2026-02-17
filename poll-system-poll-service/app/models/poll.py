@@ -1,5 +1,6 @@
 from sqlalchemy import Column, Integer, String
 from app.database import Base
+from sqlalchemy.orm import relationship
 
 
 class Poll(Base):
@@ -11,3 +12,6 @@ class Poll(Base):
     option_two = Column(String(255), nullable=False)
     option_three = Column(String(255), nullable=False)
     option_four = Column(String(255), nullable=False)
+    
+    answers = relationship("Answer", backref = "poll", cascade = "all, delete", passive_deletes = True)
+

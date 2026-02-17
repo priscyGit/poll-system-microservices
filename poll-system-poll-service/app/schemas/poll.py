@@ -1,4 +1,6 @@
 from pydantic import BaseModel
+from typing import Optional
+
 
 
 class PollCreate(BaseModel):
@@ -19,3 +21,11 @@ class PollResponse(BaseModel):
 
     class Config:
         orm_mode = True
+
+
+class PollUpdate(BaseModel):
+    title: Optional[str] = None
+    option_one: Optional[str] = None
+    option_two: Optional[str] = None
+    option_three: Optional[str] = None
+    option_four: Optional[str] = None

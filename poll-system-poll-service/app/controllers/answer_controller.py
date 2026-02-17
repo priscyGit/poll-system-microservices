@@ -17,11 +17,19 @@ def get_db():
         db.close()
 
 
-@router.post(
-    "/{poll_id}/answers",
-    response_model=AnswerResponse,
-    status_code=status.HTTP_201_CREATED
-)
+@router.post("/polls/{poll_id}/answers")
+async def answer_poll(
+    poll_id: int,
+    answer: AnswerCreate,
+    db: Session = Depends(get_db)
+):
+    return await answer_service.answer_poll(
+        db,
+        poll_id,
+        answer.user_id,
+        answer.selected_option
+    )
+
 def answer_poll(poll_id: int, answer: AnswerCreate, db: Session = Depends(get_db)):
     return answer_service.answer_poll(
         db,
@@ -51,3 +59,10 @@ def get_user_answers(user_id: int, db: Session = Depends(get_db)):
 @router.get("/statistics/all")
 def get_all_polls_statistics(db: Session = Depends(get_db)):
     return answer_service.get_all_polls_with_stats(db)
+
+@router.delete("/answers/user/{user_id}")
+def delete_answers_by_user(
+    user_id: int,
+    db: Session = Depends(get_db)
+):
+    return answer_service.delete_by_user(db, user_id)
